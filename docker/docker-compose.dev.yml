@@ -1,0 +1,74 @@
+# Docker Compose for Development
+# Usage: docker compose -f docker/docker-compose.dev.yml up
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: mono-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: mono_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # API Gateway (TypeScript/Express)
+  api-gateway:
+    build:
+      context: ..
+      dockerfile: apps/api-gateway/Dockerfile
+      target: builder
+    container_name: mono-api-gateway-dev
+    restart: unless-stopped
+    working_dir: /app
+    command: pnpm --filter @mono/api-gateway dev
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/mono_db
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      LANGCHAIN_API_KEY: ${LANGCHAIN_API_KEY}
+      LANGCHAIN_TRACING_V2: ${LANGCHAIN_TRACING_V2:-false}
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../apps/api-gateway/src:/app/apps/api-gateway/src
+      - ../packages/shared/src:/app/packages/shared/src
+      - ../packages/db/src:/app/packages/db/src
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Python Service
+  python-service:
+    build:
+      context: ../apps/python-service
+      dockerfile: Dockerfile
+      target: development
+    container_name: mono-python-service-dev
+    restart: unless-stopped
+    environment:
+      ENVIRONMENT: development
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/mono_db
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      LANGCHAIN_API_KEY: ${LANGCHAIN_API_KEY}
+      LANGCHAIN_TRACING_V2: ${LANGCHAIN_TRACING_V2:-false}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../apps/python-service/app:/app/app
+      - ../apps/python-service/tests:/app/tests
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data_dev:

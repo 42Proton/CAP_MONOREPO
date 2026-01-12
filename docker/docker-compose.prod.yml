@@ -1,0 +1,99 @@
+# Docker Compose for Production
+# Usage: docker compose -f docker/docker-compose.prod.yml up -d
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: mono-postgres-prod
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1"
+    # NOTE: In production, don't expose ports directly. Use internal network.
+    networks:
+      - internal
+
+  # API Gateway (TypeScript/Express)
+  api-gateway:
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_PREFIX:-mono}/api-gateway:${TAG:-latest}
+    container_name: mono-api-gateway-prod
+    restart: always
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      LANGCHAIN_API_KEY: ${LANGCHAIN_API_KEY}
+      LANGCHAIN_TRACING_V2: ${LANGCHAIN_TRACING_V2:-true}
+      LANGCHAIN_PROJECT: ${LANGCHAIN_PROJECT:-mono-production}
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+      - external
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1"
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+  # Python Service
+  python-service:
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_PREFIX:-mono}/python-service:${TAG:-latest}
+    container_name: mono-python-service-prod
+    restart: always
+    environment:
+      ENVIRONMENT: production
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      LANGCHAIN_API_KEY: ${LANGCHAIN_API_KEY}
+      LANGCHAIN_TRACING_V2: ${LANGCHAIN_TRACING_V2:-true}
+      LANGCHAIN_PROJECT: ${LANGCHAIN_PROJECT:-mono-production}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+      - external
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1"
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+volumes:
+  postgres_data_prod:
+
+networks:
+  internal:
+    driver: bridge
+  external:
+    driver: bridge
