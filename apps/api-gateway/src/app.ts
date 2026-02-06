@@ -1,11 +1,11 @@
 import cors from 'cors';
-import express from 'express';
+import express, { Express } from 'express';
 import helmet from 'helmet';
 
 import { errorHandler } from './middleware/error-handler.js';
 import { healthRouter } from './routes/health.js';
 
-const app = express();
+const app: Express = express();
 
 // Security middleware
 app.use(helmet());
