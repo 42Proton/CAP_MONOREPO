@@ -11,6 +11,7 @@ export const users = pgTable('users', {
   githubId: varchar('github_id', { length: 100 }).unique(),
   githubUsername: varchar('github_username', { length: 100 }),
   githubAccessToken: text('github_access_token'),
+  githubRefreshToken: text('github_refresh_token'),
   isActive: boolean('is_active').default(true).notNull(),
   emailVerified: boolean('email_verified').default(false).notNull(),
   lastLoginAt: timestamp('last_login_at'),

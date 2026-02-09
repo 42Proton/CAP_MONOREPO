@@ -63,3 +63,9 @@ export const findingCategoryEnum = pgEnum('finding_category', [
 
 // Report formats
 export const reportFormatEnum = pgEnum('report_format', ['json', 'markdown', 'pdf', 'html']);
+
+// GitHub App installation account types
+export const githubAccountTypeEnum = pgEnum('github_account_type', ['organization', 'user']);
+
+// GitHub repository selection scope
+export const repositorySelectionEnum = pgEnum('repository_selection', ['all', 'selected']);

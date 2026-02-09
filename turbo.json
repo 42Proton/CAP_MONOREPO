@@ -6,7 +6,11 @@
     "DATABASE_URL",
     "OPENAI_API_KEY",
     "LANGCHAIN_API_KEY",
-    "LANGCHAIN_TRACING_V2"
+    "LANGCHAIN_TRACING_V2",
+    "GITHUB_APP_ID",
+    "GITHUB_CLIENT_ID",
+    "JWT_SECRET",
+    "APP_URL"
   ],
   "tasks": {
     "build": {

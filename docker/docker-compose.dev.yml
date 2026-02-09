@@ -37,12 +37,20 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       LANGCHAIN_API_KEY: ${LANGCHAIN_API_KEY}
       LANGCHAIN_TRACING_V2: ${LANGCHAIN_TRACING_V2:-false}
+      GITHUB_APP_ID: ${GITHUB_APP_ID}
+      GITHUB_APP_PRIVATE_KEY: ${GITHUB_APP_PRIVATE_KEY}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
+      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET:-}
+      JWT_SECRET: ${JWT_SECRET}
+      APP_URL: http://localhost:3000
     ports:
       - "3000:3000"
     volumes:
       - ../apps/api-gateway/src:/app/apps/api-gateway/src
       - ../packages/shared/src:/app/packages/shared/src
       - ../packages/db/src:/app/packages/db/src
+      - ../packages/github/src:/app/packages/github/src
     depends_on:
       postgres:
         condition: service_healthy

@@ -1,8 +1,8 @@
-import { Router } from 'express';
+import { Router, type Router as RouterType } from 'express';
 
 import { successResponse } from '@mono/shared';
 
-const router = Router();
+const router: RouterType = Router();
 
 router.get('/', (_req, res) => {
   res.json(
