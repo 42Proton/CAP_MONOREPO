@@ -17,6 +17,7 @@ module.exports = {
     '^(\\.{1,2}/.*)\\.js$': '$1',
     '^@mono/shared$': '<rootDir>/../../packages/shared/src/index.ts',
     '^@mono/db$': '<rootDir>/../../packages/db/src/index.ts',
+    '^@mono/github$': '<rootDir>/../../packages/github/src/index.ts',
   },
   collectCoverageFrom: ['src/**/*.ts', '!src/**/*.test.ts'],
   coverageDirectory: 'coverage',

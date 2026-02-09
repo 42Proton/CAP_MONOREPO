@@ -2,6 +2,7 @@ export * from './analysis-sessions';
 export * from './analysis-steps';
 export * from './enums';
 export * from './findings';
+export * from './github-installations';
 export * from './projects';
 export * from './relations';
 export * from './reports';
