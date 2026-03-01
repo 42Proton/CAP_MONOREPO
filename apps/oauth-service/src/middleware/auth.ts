@@ -21,22 +21,33 @@ declare global {
 
 export function requireAuth(req: Request, res: Response, next: NextFunction): void {
   const authHeader = req.headers.authorization;
+  const cookieToken = req.cookies?.token;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  let token: string | undefined;
+
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.substring(7);
+  } else if (cookieToken) {
+    token = cookieToken;
+  }
+
+  if (!token) {
     res.status(HTTP_STATUS.UNAUTHORIZED).json(
-      errorResponse('Missing or invalid Authorization header')
+      errorResponse('Missing or invalid Authorization. Please login first.')
     );
     return;
   }
 
-  const token = authHeader.substring(7);
-
   try {
     const decoded = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
+    
     req.user = decoded;
+    
     next();
-  } catch {
-    res.status(HTTP_STATUS.UNAUTHORIZED).json(errorResponse('Invalid or expired token'));
+  } catch (error) {
+    res.status(HTTP_STATUS.UNAUTHORIZED).json(
+      errorResponse('Invalid or expired token. Please login again.')
+    );
   }
 }
 
