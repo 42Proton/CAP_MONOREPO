@@ -3,8 +3,20 @@
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "./src",
-    "types": ["jest", "node"]
+    "types": ["jest", "node"],
+    "composite": true 
   },
-  "include": ["src/**/*.test.ts"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
 }
+
+// {
+//   "extends": "@mono/typescript-config/node.json",
+//   "compilerOptions": {
+//     "outDir": "./dist",
+//     "rootDir": "./src",
+//     "types": ["jest", "node"]
+//   },
+//   "include": ["src/**/*.test.ts"],
+//   "exclude": ["node_modules", "dist"]
+// }

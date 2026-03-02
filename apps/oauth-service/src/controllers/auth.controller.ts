@@ -12,7 +12,7 @@ export const githubLogin = (_req: Request, res: Response) => {
   res.cookie('oauth_state', state, { 
     httpOnly: true, 
     maxAge: 15 * 60 * 1000, 
-    secure: process.env.NODE_ENV === 'production',
+    secure: process.env.NODE_ENV === 'production' && !process.env.APP_URL?.includes('localhost'),
     sameSite: 'lax'
   });
 
@@ -26,107 +26,65 @@ export const githubLogin = (_req: Request, res: Response) => {
 };
 
 export const githubCallback = async (req: Request, res: Response) => {
-  const { code, state } = req.query; 
-  const savedState = req.cookies.oauth_state; 
+  const { code, state } = req.query;
+  const savedState = req.cookies.oauth_state;
 
   if (!state || state !== savedState) {
-    return res.status(HTTP_STATUS.FORBIDDEN).json(
-      errorResponse('Invalid state parameter. Possible CSRF attack.')
-    );
+    return res.status(HTTP_STATUS.FORBIDDEN).json(errorResponse('Invalid state parameter.'));
   }
 
   res.clearCookie('oauth_state');
 
   if (!code || typeof code !== 'string') {
-    return res.status(HTTP_STATUS.BAD_REQUEST).json(
-      errorResponse('No authorization code provided')
-    );
+    return res.status(HTTP_STATUS.BAD_REQUEST).json(errorResponse('No code provided'));
   }
 
   try {
-    const tokenData = await exchangeCodeForToken(
-      env.GITHUB_CLIENT_ID,
-      env.GITHUB_CLIENT_SECRET,
-      code
-    );
-
+    const tokenData = await exchangeCodeForToken(env.GITHUB_CLIENT_ID, env.GITHUB_CLIENT_SECRET, code);
     const githubUser = await getGitHubUser(tokenData.access_token);
 
-    const existingUsers = await db
-      .select()
-      .from(users)
-      .where(eq(users.githubId, String(githubUser.id)));
+    const [existingUser] = await db.select().from(users).where(eq(users.githubId, String(githubUser.id)));
 
-    let userId: string;
-    let userRole: string;
+    const { userId, userRole } = existingUser 
+      ? await (async () => {
+          const [updated] = await db.update(users)
+            .set({
+              githubUsername: githubUser.login,
+              githubAccessToken: tokenData.access_token,
+              lastLoginAt: new Date(),
+            })
+            .where(eq(users.githubId, String(githubUser.id)))
+            .returning({ id: users.id });
+          return { userId: updated.id, userRole: existingUser.role };
+        })()
+      : await (async () => {
+          const [inserted] = await db.insert(users)
+            .values({
+              email: githubUser.email ?? `${githubUser.id}@github.com`,
+              githubId: String(githubUser.id),
+              githubUsername: githubUser.login,
+              role: 'user', 
+            })
+            .returning({ id: users.id });
+          return { userId: inserted.id, userRole: 'user' };
+        })();
 
-    if (existingUsers.length > 0) {
-      const updated = await db
-        .update(users)
-        .set({
-          githubUsername: githubUser.login,
-          githubAccessToken: tokenData.access_token,
-          githubRefreshToken: tokenData.refresh_token ?? null,
-          name: githubUser.name ?? existingUsers[0].name,
-          avatarUrl: githubUser.avatar_url,
-          lastLoginAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .where(eq(users.githubId, String(githubUser.id)))
-        .returning({ id: users.id });
+    const token = signToken({ userId, githubUsername: githubUser.login, role: userRole });
 
-      userId = updated[0].id;
-      userRole = existingUsers[0].role;
-    } else {
-      const inserted = await db
-        .insert(users)
-        .values({
-          email: githubUser.email ?? `${githubUser.id}+${githubUser.login}@users.noreply.github.com`,
-          name: githubUser.name,
-          avatarUrl: githubUser.avatar_url,
-          githubId: String(githubUser.id),
-          githubUsername: githubUser.login,
-          githubAccessToken: tokenData.access_token,
-          githubRefreshToken: tokenData.refresh_token ?? null,
-          lastLoginAt: new Date(),
-        })
-        .returning({ id: users.id });
-
-      userId = inserted[0].id;
-      userRole = 'user';
-    }
-
-    const token = signToken({
-      userId,
-      githubUsername: githubUser.login,
-      role: userRole,
-    });
-
-    res.cookie('token', token, { 
-      httpOnly: true, 
-      secure: process.env.NODE_ENV === 'production',
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production' && !process.env.APP_URL?.includes('localhost'),
       sameSite: 'lax',
-      maxAge: 24 * 60 * 60 * 1000
+      maxAge: 24 * 60 * 60 * 1000,
     });
 
-    res.json(successResponse({
-      token,
-      user: {
-        id: userId,
-        githubUsername: githubUser.login,
-        name: githubUser.name,
-        avatarUrl: githubUser.avatar_url,
-      },
-    }));
-    
+    return res.json(successResponse({ token, user: { id: userId, githubUsername: githubUser.login } }));
+
   } catch (error: any) {
     console.error('[Auth Service] Error:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json(
-      errorResponse(error.message || 'Authentication failed')
-    );
+    return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json(errorResponse(error.message));
   }
 };
-
 
 export const getMe = async (req: Request, res: Response) => {
   try {

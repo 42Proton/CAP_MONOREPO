@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { githubLogin, githubCallback, getMe, logout } from '../controllers/auth.controller';
+import { githubLogin, githubCallback, getMe, logout } from '../controllers/auth.controller.js';
 import { requireAuth } from '../middleware/auth.js';
 
 const router: Router = Router();
