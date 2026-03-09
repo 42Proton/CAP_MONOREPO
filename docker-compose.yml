@@ -35,6 +35,19 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+  ai-analyzer:
+    build: 
+      context: .
+      dockerfile: apps/ai-analyzer/Dockerfile
+    container_name: ai-analyzer
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "5001:5001" 
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   # Optional: pgAdmin for visual database management
   pgadmin:

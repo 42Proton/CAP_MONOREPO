@@ -27,5 +27,5 @@ export const findings = pgTable('findings', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
-export type Finding = typeof findings.$inferSelect;
+export type Finding = typeof findings.$inferSelect; 
 export type NewFinding = typeof findings.$inferInsert;

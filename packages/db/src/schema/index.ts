@@ -7,3 +7,4 @@ export * from './projects';
 export * from './relations';
 export * from './reports';
 export * from './users';
+export * from './chat-history';
