@@ -5,7 +5,6 @@ import { PostgresChatMessageHistory } from "@langchain/community/stores/message/
 import { env } from '../config/env.js';
 import { z } from "zod";
 import { Pool } from "pg";
-//import { findings } from '@mono/db/src/schema';
 import { db, findings } from '@mono/db';
 
 const pool = new Pool({

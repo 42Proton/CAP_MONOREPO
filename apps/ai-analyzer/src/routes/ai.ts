@@ -3,10 +3,7 @@ import { analyzeCodeSnippet } from '../agents/main-agent.js';
 import { successResponse, HTTP_STATUS } from '@mono/shared';
 import { db,  analysisSessions,  findings} from '@mono/db';
 import { eq , and} from 'drizzle-orm';
-//import { analysisSessions } from '@mono/db/src/schema'; 
 import { isAuth } from '../middleware/auth.js';
-//import { findings } from '@mono/db/src/schema';
-
 
 const router: Router = Router();
 
