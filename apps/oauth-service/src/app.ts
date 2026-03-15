@@ -9,9 +9,13 @@ import { authRouter } from './routes/auth.js';
 
 const app: Express = express();
 
+app.use(cors({
+  origin: 'http://localhost:3000',
+  credentials: true
+}));
+
 // Security middleware
 app.use(helmet());
-app.use(cors());
 
 // Body parsing
 app.use(express.json());
