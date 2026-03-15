@@ -44,8 +44,6 @@ COPY --from=builder --chown=expressjs:nodejs /app/packages/shared/dist ./package
 COPY --from=builder --chown=expressjs:nodejs /app/packages/db/dist ./packages/db/dist
 COPY --from=builder --chown=expressjs:nodejs /app/packages/github/dist ./packages/github/dist
 
-COPY --from=builder --chown=expressjs:nodejs /app/apps/oauth-service/.env ./apps/oauth-service/.env
-
 USER expressjs
 EXPOSE 3001
 

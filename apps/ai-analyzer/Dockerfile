@@ -22,7 +22,6 @@ COPY packages ./packages
 RUN pnpm install --prod --no-frozen-lockfile --filter=@mono/ai-analyzer...
 
 COPY --from=builder --chown=expressjs:nodejs /app/apps/ai-analyzer/dist ./apps/ai-analyzer/dist
-COPY --from=builder --chown=expressjs:nodejs /app/.env ./apps/ai-analyzer/.env
 COPY --from=builder --chown=expressjs:nodejs /app/packages/db/dist ./packages/db/dist
 COPY --from=builder --chown=expressjs:nodejs /app/packages/shared/dist ./packages/shared/dist
 ENV LANGCHAIN_CALLBACKS_BACKGROUND=true
