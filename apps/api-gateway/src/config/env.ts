@@ -5,7 +5,6 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(3000),
   DATABASE_URL: z.string().url(),
   OPENAI_API_KEY: z.string().optional(),
-  LANGCHAIN_API_KEY: z.string().optional(),
   LANGCHAIN_TRACING_V2: z.coerce.boolean().default(false),
 
   // GitHub App

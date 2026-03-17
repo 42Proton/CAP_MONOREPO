@@ -126,6 +126,12 @@ docker compose -f docker/docker-compose.staging.yml up -d
 docker compose -f docker/docker-compose.prod.yml up -d
 ```
 
+## Cloud Run Deployment
+
+Use the local-first Cloud Run guide:
+
+- [`docs/CLOUD_RUN_LOCAL_FIRST.md`](docs/CLOUD_RUN_LOCAL_FIRST.md)
+
 ## Adding New Services
 
 ### TypeScript Service
@@ -149,7 +155,6 @@ docker compose -f docker/docker-compose.prod.yml up -d
 | ---------------------- | ---------------------------- |
 | `DATABASE_URL`         | PostgreSQL connection string |
 | `OPENAI_API_KEY`       | OpenAI API key for LangChain |
-| `LANGCHAIN_API_KEY`    | LangChain/LangSmith API key  |
 | `LANGCHAIN_TRACING_V2` | Enable LangSmith tracing     |
 | `LANGCHAIN_PROJECT`    | LangSmith project name       |
 

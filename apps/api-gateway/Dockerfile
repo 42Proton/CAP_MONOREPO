@@ -10,19 +10,16 @@ COPY packages/typescript-config/package.json ./packages/typescript-config/
 COPY packages/eslint-config/package.json ./packages/eslint-config/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/db/package.json ./packages/db/
+COPY packages/github/package.json ./packages/github/
 COPY apps/api-gateway/package.json ./apps/api-gateway/
 RUN pnpm install --frozen-lockfile
 
 # Builder stage
 FROM base AS builder
 WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/packages/typescript-config/node_modules ./packages/typescript-config/node_modules
-COPY --from=deps /app/packages/eslint-config/node_modules ./packages/eslint-config/node_modules
-COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
-COPY --from=deps /app/packages/db/node_modules ./packages/db/node_modules
-COPY --from=deps /app/apps/api-gateway/node_modules ./apps/api-gateway/node_modules
+COPY --from=deps /app ./
 COPY . .
+RUN find . -name "*.tsbuildinfo" -delete
 RUN pnpm run build --filter=@mono/api-gateway...
 
 # Production stage

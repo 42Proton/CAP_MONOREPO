@@ -3,7 +3,8 @@ dotenv.config();
 import app from './app.js';
 import { env } from './config/env.js';
 
-const port = env.AI_PORT || 5001;
+// Cloud Run injects PORT. Fall back to AI_PORT for local/dev compatibility.
+const port = Number(process.env.PORT ?? env.AI_PORT ?? 5001);
 
 app.listen(port, () => {
   console.info(`ai-analyzer running on http://localhost:${port}`);
