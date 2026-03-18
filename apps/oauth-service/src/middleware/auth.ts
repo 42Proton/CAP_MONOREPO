@@ -7,7 +7,8 @@ import { env } from '../config/env.js';
 
 export interface JwtPayload {
   userId: string;
-  githubUsername: string;
+  githubUsername?: string;
+  email?: string;
   role: string;
 }
 

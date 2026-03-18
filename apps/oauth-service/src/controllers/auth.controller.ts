@@ -1,27 +1,47 @@
 import { Request, Response } from 'express';
 import crypto from 'node:crypto';
+import { z } from 'zod';
+
 import { db, eq, users } from '@mono/db';
 import { getAuthorizationUrl, exchangeCodeForToken, getGitHubUser } from '@mono/github';
 import { successResponse, errorResponse, HTTP_STATUS } from '@mono/shared';
+
 import { env } from '../config/env.js';
 import { signToken } from '../middleware/auth.js';
+import { hashPassword, verifyPassword } from '../utils/password.js';
+
+const registerSchema = z.object({
+  email: z.string().trim().email(),
+  password: z.string().min(8).max(128),
+  name: z.string().trim().min(1).max(255).optional(),
+});
+
+const loginSchema = z.object({
+  email: z.string().trim().email(),
+  password: z.string().min(1).max(128),
+});
+
+function setAuthCookie(res: Response, token: string): void {
+  res.cookie('token', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production' && !process.env.APP_URL?.includes('localhost'),
+    sameSite: 'lax',
+    maxAge: 24 * 60 * 60 * 1000,
+  });
+}
 
 export const githubLogin = (_req: Request, res: Response) => {
   const state = crypto.randomBytes(32).toString('hex');
 
-  res.cookie('oauth_state', state, { 
-    httpOnly: true, 
-    maxAge: 15 * 60 * 1000, 
+  res.cookie('oauth_state', state, {
+    httpOnly: true,
+    maxAge: 15 * 60 * 1000,
     secure: process.env.NODE_ENV === 'production' && !process.env.APP_URL?.includes('localhost'),
-    sameSite: 'lax'
+    sameSite: 'lax',
   });
 
-  const url = getAuthorizationUrl(
-    env.GITHUB_CLIENT_ID,
-    env.GITHUB_CALLBACK_URL,
-    state
-  );
-  
+  const url = getAuthorizationUrl(env.GITHUB_CLIENT_ID, env.GITHUB_CALLBACK_URL, state);
+
   res.redirect(url);
 };
 
@@ -43,11 +63,15 @@ export const githubCallback = async (req: Request, res: Response) => {
     const tokenData = await exchangeCodeForToken(env.GITHUB_CLIENT_ID, env.GITHUB_CLIENT_SECRET, code);
     const githubUser = await getGitHubUser(tokenData.access_token);
 
-    const [existingUser] = await db.select().from(users).where(eq(users.githubId, String(githubUser.id)));
+    const [existingUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.githubId, String(githubUser.id)));
 
-    const { userId, userRole } = existingUser 
+    const { userId, userRole } = existingUser
       ? await (async () => {
-          const [updated] = await db.update(users)
+          const [updated] = await db
+            .update(users)
             .set({
               githubUsername: githubUser.login,
               githubAccessToken: tokenData.access_token,
@@ -55,34 +79,168 @@ export const githubCallback = async (req: Request, res: Response) => {
             })
             .where(eq(users.githubId, String(githubUser.id)))
             .returning({ id: users.id });
+
           return { userId: updated.id, userRole: existingUser.role };
         })()
       : await (async () => {
-          const [inserted] = await db.insert(users)
+          const [inserted] = await db
+            .insert(users)
             .values({
               email: githubUser.email ?? `${githubUser.id}@github.com`,
               githubId: String(githubUser.id),
               githubUsername: githubUser.login,
-              role: 'user', 
+              role: 'user',
             })
             .returning({ id: users.id });
+
           return { userId: inserted.id, userRole: 'user' };
         })();
 
     const token = signToken({ userId, githubUsername: githubUser.login, role: userRole });
 
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production' && !process.env.APP_URL?.includes('localhost'),
-      sameSite: 'lax',
-      maxAge: 24 * 60 * 60 * 1000,
-    });
+    setAuthCookie(res, token);
 
     return res.json(successResponse({ token, user: { id: userId, githubUsername: githubUser.login } }));
-
   } catch (error: any) {
     console.error('[Auth Service] Error:', error);
     return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json(errorResponse(error.message));
+  }
+};
+
+export const registerWithEmailPassword = async (req: Request, res: Response) => {
+  const parsedBody = registerSchema.safeParse(req.body);
+
+  if (!parsedBody.success) {
+    return res
+      .status(HTTP_STATUS.BAD_REQUEST)
+      .json(errorResponse(parsedBody.error.issues[0]?.message || 'Invalid input'));
+  }
+
+  const email = parsedBody.data.email.toLowerCase();
+  const name = parsedBody.data.name?.trim();
+
+  try {
+    const [existingUser] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, email));
+
+    if (existingUser) {
+      return res.status(409).json(errorResponse('Email is already registered'));
+    }
+
+    const passwordHash = await hashPassword(parsedBody.data.password);
+
+    const [createdUser] = await db
+      .insert(users)
+      .values({
+        email,
+        passwordHash,
+        name: name || null,
+        role: 'user',
+        lastLoginAt: new Date(),
+      })
+      .returning({
+        id: users.id,
+        email: users.email,
+        name: users.name,
+        role: users.role,
+        githubUsername: users.githubUsername,
+      });
+
+    const token = signToken({
+      userId: createdUser.id,
+      email: createdUser.email,
+      githubUsername: createdUser.githubUsername ?? undefined,
+      role: createdUser.role,
+    });
+
+    setAuthCookie(res, token);
+
+    return res.status(HTTP_STATUS.CREATED).json(
+      successResponse({
+        token,
+        user: {
+          id: createdUser.id,
+          email: createdUser.email,
+          name: createdUser.name,
+          role: createdUser.role,
+        },
+      })
+    );
+  } catch (error: any) {
+    console.error('[Auth Service] Register Error:', error);
+    return res
+      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+      .json(errorResponse(error.message || 'Registration failed'));
+  }
+};
+
+export const loginWithEmailPassword = async (req: Request, res: Response) => {
+  const parsedBody = loginSchema.safeParse(req.body);
+
+  if (!parsedBody.success) {
+    return res
+      .status(HTTP_STATUS.BAD_REQUEST)
+      .json(errorResponse(parsedBody.error.issues[0]?.message || 'Invalid input'));
+  }
+
+  const email = parsedBody.data.email.toLowerCase();
+
+  try {
+    const [existingUser] = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        name: users.name,
+        role: users.role,
+        githubUsername: users.githubUsername,
+        passwordHash: users.passwordHash,
+      })
+      .from(users)
+      .where(eq(users.email, email));
+
+    if (!existingUser || !existingUser.passwordHash) {
+      return res.status(HTTP_STATUS.UNAUTHORIZED).json(errorResponse('Invalid email or password'));
+    }
+
+    const isPasswordValid = await verifyPassword(parsedBody.data.password, existingUser.passwordHash);
+
+    if (!isPasswordValid) {
+      return res.status(HTTP_STATUS.UNAUTHORIZED).json(errorResponse('Invalid email or password'));
+    }
+
+    await db
+      .update(users)
+      .set({ lastLoginAt: new Date() })
+      .where(eq(users.id, existingUser.id));
+
+    const token = signToken({
+      userId: existingUser.id,
+      email: existingUser.email,
+      githubUsername: existingUser.githubUsername ?? undefined,
+      role: existingUser.role,
+    });
+
+    setAuthCookie(res, token);
+
+    return res.json(
+      successResponse({
+        token,
+        user: {
+          id: existingUser.id,
+          email: existingUser.email,
+          name: existingUser.name,
+          role: existingUser.role,
+          githubUsername: existingUser.githubUsername,
+        },
+      })
+    );
+  } catch (error: any) {
+    console.error('[Auth Service] Login Error:', error);
+    return res
+      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+      .json(errorResponse(error.message || 'Login failed'));
   }
 };
 
@@ -119,6 +277,7 @@ export const getMe = async (req: Request, res: Response) => {
     );
   }
 };
+
 export const logout = async (_req: Request, res: Response) => {
   res.clearCookie('token');
   res.json(successResponse({ message: 'Logged out successfully' }));
