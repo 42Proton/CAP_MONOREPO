@@ -152,3 +152,9 @@ curl https://YOUR_CLOUD_RUN_URL/health
 - Cloud Run does not run your docker-compose stack. Deploy each microservice separately.
 - Do not run PostgreSQL inside Cloud Run for production. Use Cloud SQL or another managed Postgres.
 - If a service needs private DB access, attach a Serverless VPC connector and (for Cloud SQL) use `--add-cloudsql-instances`.
+
+## Auth API Docs
+
+- Human-readable contract: `docs/AUTH_API.md`
+- OpenAPI spec: `docs/oauth-service-auth.openapi.yaml`
+- Deployment runbook: `docs/OAUTH_CLOUD_RUN_DEPLOY.md`
