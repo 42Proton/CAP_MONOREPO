@@ -76,7 +76,9 @@ export const githubCallback = async (req: Request, res: Response) => {
               githubUsername: githubUser.login,
               githubAccessToken: tokenData.access_token,
               lastLoginAt: new Date(),
-            })
+              updatedAt: new Date(),
+              avatarUrl: githubUser.avatar_url,
+            })authintication
             .where(eq(users.githubId, String(githubUser.id)))
             .returning({ id: users.id });
 
@@ -89,7 +91,11 @@ export const githubCallback = async (req: Request, res: Response) => {
               email: githubUser.email ?? `${githubUser.id}@github.com`,
               githubId: String(githubUser.id),
               githubUsername: githubUser.login,
-              role: 'user',
+              avatarUrl: githubUser.avatar_url,
+              githubAccessToken: tokenData.access_token,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              role: 'user', 
             })
             .returning({ id: users.id });
 
@@ -262,6 +268,7 @@ export const getMe = async (req: Request, res: Response) => {
         role: users.role,
         lastLoginAt: users.lastLoginAt,
         createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
       })
       .from(users)
       .where(eq(users.id, userId));
