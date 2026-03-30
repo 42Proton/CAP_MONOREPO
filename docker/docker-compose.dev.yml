@@ -27,22 +27,16 @@ services:
       context: ..
       dockerfile: apps/api-gateway/Dockerfile
       target: builder
+    env_file:
+      - ../.env
     container_name: mono-api-gateway-dev
     restart: unless-stopped
     working_dir: /app
     command: pnpm --filter @mono/api-gateway dev
     environment:
       NODE_ENV: development
+      PORT: 3000
       DATABASE_URL: postgresql://postgres:password@postgres:5432/mono_db
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
-      LANGCHAIN_API_KEY: ${LANGCHAIN_API_KEY}
-      LANGCHAIN_TRACING_V2: ${LANGCHAIN_TRACING_V2:-false}
-      GITHUB_APP_ID: ${GITHUB_APP_ID}
-      GITHUB_APP_PRIVATE_KEY: ${GITHUB_APP_PRIVATE_KEY}
-      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
-      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
-      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET:-}
-      JWT_SECRET: ${JWT_SECRET}
       APP_URL: http://localhost:3000
     ports:
       - "3000:3000"
@@ -61,14 +55,13 @@ services:
       context: ../apps/python-service
       dockerfile: Dockerfile
       target: development
+    env_file:
+      - ../.env
     container_name: mono-python-service-dev
     restart: unless-stopped
     environment:
       ENVIRONMENT: development
       DATABASE_URL: postgresql://postgres:password@postgres:5432/mono_db
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
-      LANGCHAIN_API_KEY: ${LANGCHAIN_API_KEY}
-      LANGCHAIN_TRACING_V2: ${LANGCHAIN_TRACING_V2:-false}
     ports:
       - "8000:8000"
     volumes:

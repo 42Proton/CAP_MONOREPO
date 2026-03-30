@@ -5,6 +5,7 @@ WORKDIR /app
 FROM base AS builder
 COPY . .
 RUN pnpm install --no-frozen-lockfile
+RUN find . -name "*.tsbuildinfo" -delete
 RUN pnpm run build --filter=@mono/ai-analyzer...
 
 FROM node:20-alpine AS runner

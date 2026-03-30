@@ -15,7 +15,6 @@ const envSchema = z.object({
   JWT_SECRET: z.string().default('a_very_secret_key_change_me_in_production'),
   GITHUB_CALLBACK_URL: z.string().url().optional().default('http://localhost:3001/auth/callback/github'),
   OPENAI_API_KEY: z.string().min(1, "API Key is required"),
-  LANGCHAIN_API_KEY: z.string().optional(),
   LANGCHAIN_TRACING_V2: z.coerce.boolean().default(false),
 });
 

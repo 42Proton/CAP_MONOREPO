@@ -200,7 +200,6 @@ class Settings(BaseSettings):
 
     # LangChain
     openai_api_key: str | None = None
-    langchain_api_key: str | None = None
     langchain_tracing_v2: bool = False
     langchain_project: str = "mono"
 

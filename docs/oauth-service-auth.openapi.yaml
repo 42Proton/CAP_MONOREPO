@@ -1,0 +1,469 @@
+openapi: 3.0.3
+info:
+  title: OAuth Service Auth API
+  version: 1.0.0
+  description: Authentication and identity endpoints for oauth-service.
+servers:
+  - url: http://localhost:3001
+    description: Local
+  - url: https://YOUR_OAUTH_SERVICE_URL
+    description: Cloud Run
+tags:
+  - name: Health
+  - name: Auth
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /health/ready:
+    get:
+      tags: [Health]
+      summary: Readiness check (includes DB)
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadyResponse'
+        '503':
+          description: Service is not ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnreadyResponse'
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register with email/password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Registered successfully
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+              description: token cookie is set
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login with email/password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Logged in successfully
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+              description: token cookie is set
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/github:
+    get:
+      tags: [Auth]
+      summary: Start GitHub OAuth flow
+      responses:
+        '302':
+          description: Redirect to GitHub OAuth consent page
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+              description: oauth_state cookie is set
+  /auth/callback/github:
+    get:
+      tags: [Auth]
+      summary: Handle GitHub OAuth callback
+      parameters:
+        - in: query
+          name: code
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: state
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OAuth login successful
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+              description: token cookie is set
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GitHubAuthResponse'
+        '400':
+          description: Missing code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Invalid OAuth state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Get current authenticated user
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeResponse'
+        '401':
+          description: Missing or invalid auth
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout current browser session (clears token cookie)
+      responses:
+        '200':
+          description: Logged out
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+              description: token cookie cleared
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogoutResponse'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: token
+  schemas:
+    ApiSuccess:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        message:
+          type: string
+          nullable: true
+    ApiError:
+      type: object
+      required: [success, error]
+      properties:
+        success:
+          type: boolean
+          enum: [false]
+        error:
+          type: string
+        message:
+          type: string
+          nullable: true
+    ErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiError'
+    RegisterRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        password:
+          type: string
+          minLength: 8
+          maxLength: 128
+          example: StrongPass123!
+        name:
+          type: string
+          nullable: true
+          example: Jane Doe
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        password:
+          type: string
+          minLength: 1
+          maxLength: 128
+          example: StrongPass123!
+    AuthUser:
+      type: object
+      required: [id, email, role]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+          nullable: true
+        role:
+          type: string
+          enum: [user, admin]
+        githubUsername:
+          type: string
+          nullable: true
+    AuthData:
+      type: object
+      required: [token, user]
+      properties:
+        token:
+          type: string
+        user:
+          $ref: '#/components/schemas/AuthUser'
+    AuthResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccess'
+        - type: object
+          required: [data]
+          properties:
+            data:
+              $ref: '#/components/schemas/AuthData'
+    GitHubUser:
+      type: object
+      required: [id, githubUsername]
+      properties:
+        id:
+          type: string
+          format: uuid
+        githubUsername:
+          type: string
+    GitHubAuthData:
+      type: object
+      required: [token, user]
+      properties:
+        token:
+          type: string
+        user:
+          $ref: '#/components/schemas/GitHubUser'
+    GitHubAuthResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccess'
+        - type: object
+          required: [data]
+          properties:
+            data:
+              $ref: '#/components/schemas/GitHubAuthData'
+    MeUser:
+      type: object
+      required: [id, email, role, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+          nullable: true
+        avatarUrl:
+          type: string
+          nullable: true
+        githubUsername:
+          type: string
+          nullable: true
+        role:
+          type: string
+          enum: [user, admin]
+        lastLoginAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+    MeResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccess'
+        - type: object
+          required: [data]
+          properties:
+            data:
+              $ref: '#/components/schemas/MeUser'
+    LogoutData:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+          example: Logged out successfully
+    LogoutResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccess'
+        - type: object
+          required: [data]
+          properties:
+            data:
+              $ref: '#/components/schemas/LogoutData'
+    HealthData:
+      type: object
+      required: [status, timestamp, service]
+      properties:
+        status:
+          type: string
+          example: healthy
+        timestamp:
+          type: string
+          format: date-time
+        service:
+          type: string
+          example: oauth-service
+    HealthResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccess'
+        - type: object
+          required: [data]
+          properties:
+            data:
+              $ref: '#/components/schemas/HealthData'
+    ReadyData:
+      type: object
+      required: [status, database, timestamp]
+      properties:
+        status:
+          type: string
+          example: ready
+        database:
+          type: string
+          example: connected
+        timestamp:
+          type: string
+          format: date-time
+    ReadyResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccess'
+        - type: object
+          required: [data]
+          properties:
+            data:
+              $ref: '#/components/schemas/ReadyData'
+    UnreadyData:
+      type: object
+      required: [status, database, timestamp]
+      properties:
+        status:
+          type: string
+          example: unready
+        database:
+          type: string
+          example: disconnected
+        timestamp:
+          type: string
+          format: date-time
+    UnreadyResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [false]
+        data:
+          $ref: '#/components/schemas/UnreadyData'

@@ -15,12 +15,11 @@ RUN pnpm install --frozen-lockfile
 
 FROM base AS builder
 WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app ./
 COPY . .
 
 RUN rm -rf apps/oauth-service/dist
-RUN pnpm run build --filter=@mono/oauth-service...
-
+RUN find . -name "*.tsbuildinfo" -delete
 RUN pnpm run build --filter=@mono/oauth-service...
 
 FROM node:20-alpine AS runner
