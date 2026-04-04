@@ -31,3 +31,16 @@ export interface GitHubUserProfile {
   email: string | null;
   avatar_url: string;
 }
+
+export interface GitHubRepository { // added by esraa 
+  id: number;
+  name: string;
+  full_name: string;
+  html_url: string;
+  description: string | null;
+  private: boolean;
+  stargazers_count: number;
+  language: string | null;
+  updated_at: string;
+  default_branch?: string;
+}

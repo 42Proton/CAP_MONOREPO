@@ -49,6 +49,36 @@ services:
       postgres:
         condition: service_healthy
 
+  github-service:
+    build: 
+      context: .
+      dockerfile: apps/github-service/Dockerfile
+    container_name: github-service
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "3002:3002" 
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
+  
+  minio:
+    image: minio/minio:latest
+    container_name: cap_minio
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY} 
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+
   # Optional: pgAdmin for visual database management
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -67,3 +97,4 @@ services:
 
 volumes:
   postgres_data:
+  minio_data:
