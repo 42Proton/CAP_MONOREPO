@@ -65,6 +65,34 @@ services:
       minio:
         condition: service_started
   
+  notification-service:
+    build: 
+      context: .
+      dockerfile: apps/notification-service/Dockerfile
+    container_name: notification-service
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "8085:8085" 
+    depends_on:
+      postgres:
+        condition: service_healthy
+  
+  team-service:
+    build: 
+      context: .
+      dockerfile: apps/team-service/Dockerfile
+    container_name: team-service
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "3003:3003" 
+    depends_on:
+      postgres:
+        condition: service_healthy
+        
   minio:
     image: minio/minio:latest
     container_name: cap_minio

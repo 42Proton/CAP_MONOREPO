@@ -8,14 +8,22 @@ import { reports } from './reports';
 import { users } from './users';
 import { teams } from './teams';
 import { teamMembers } from './team-members';
+import { notifications } from './notifications'; 
 
 
 export const usersRelations = relations(users, ({ many }) => ({
   projects: many(projects), 
   teamMemberships: many(teamMembers),
   ownedTeams: many(teams), 
+  notifications: many(notifications),
 }));
 
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+}));
 
 export const projectsRelations = relations(projects, ({ one, many }) => ({
   user: one(users, {

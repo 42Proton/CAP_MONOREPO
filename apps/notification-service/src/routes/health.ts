@@ -10,14 +10,14 @@ router.get('/', async (_req: Request, res: Response) => {
 
     res.status(200).json({
       status: 'healthy',
-      service: 'github-service',
+      service: 'notification-service',
       timestamp: new Date().toISOString(),
       database: 'connected'
     });
   } catch (error) {
     res.status(503).json({
       status: 'unhealthy',
-      service: 'github-service',
+      service: 'notification-service',
       error: (error as Error).message
     });
   }

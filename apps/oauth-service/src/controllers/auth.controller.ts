@@ -55,6 +55,7 @@ export const githubCallback = async (req: Request, res: Response) => {
             .set({
               githubId: String(githubUser.id),
               githubUsername: githubUser.login,
+              name: githubUser.name || githubUser.login,
               githubAccessToken: tokenData.access_token,
               lastLoginAt: new Date(),
               updatedAt: new Date(),
@@ -70,6 +71,7 @@ export const githubCallback = async (req: Request, res: Response) => {
               email: githubUser.email ?? `${githubUser.id}@github.com`,
               githubId: String(githubUser.id),
               githubUsername: githubUser.login,
+              name: githubUser.name || githubUser.login,
               avatarUrl: githubUser.avatar_url,
               githubAccessToken: tokenData.access_token,
               createdAt: new Date(),

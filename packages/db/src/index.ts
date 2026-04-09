@@ -14,7 +14,5 @@ export const createMigrationClient = () => {
 };
 
 export * from './schema/index';
-export * from './schema/teams';         
-export * from './schema/team-members';
 
 export { and, eq, gt, gte, inArray, lt, lte, ne, not, or, sql } from 'drizzle-orm';

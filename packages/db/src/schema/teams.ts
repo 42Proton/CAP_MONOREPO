@@ -14,9 +14,3 @@ export const teams = pgTable('teams', {
 
 export type Team = typeof teams.$inferSelect;
 export type NewTeam = typeof teams.$inferInsert;
-
-export interface CreateTeamRequest {
-  teamName: string;      
-  projectName: string;   
-  description?: string;
-}
