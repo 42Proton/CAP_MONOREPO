@@ -61,6 +61,8 @@ export const findingCategoryEnum = pgEnum('finding_category', [
   'maintainability',
 ]);
 
+export const teamRoleEnum = pgEnum('team_role', ['admin', 'developer', 'viewer']);
+
 // Report formats
 export const reportFormatEnum = pgEnum('report_format', ['json', 'markdown', 'pdf', 'html']);
 

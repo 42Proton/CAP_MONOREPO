@@ -2,12 +2,15 @@ import { integer, jsonb, pgTable, text, timestamp, uuid, varchar } from 'drizzle
 
 import { projectSourceEnum, projectStatusEnum } from './enums';
 import { users } from './users';
+import { teams } from './teams';
+
 
 export const projects = pgTable('projects', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
+  teamId: uuid('team_id').references(() => teams.id, { onDelete: 'set null' }),
   name: varchar('name', { length: 255 }).notNull(),
   description: text('description'),
   sourceType: projectSourceEnum('source_type').notNull(),

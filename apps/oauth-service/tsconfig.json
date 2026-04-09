@@ -1,0 +1,10 @@
+{
+  "extends": "@mono/typescript-config/node.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts"],
+ // "references": [{ "path": "./tsconfig.test.json" }]//for health.test.ts
+}

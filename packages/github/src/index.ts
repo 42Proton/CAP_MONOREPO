@@ -8,4 +8,5 @@ export type {
   GitHubInstallationData,
   GitHubOAuthTokenResponse,
   GitHubUserProfile,
+  GitHubRepository,
 } from './types.js';

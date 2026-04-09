@@ -22,6 +22,91 @@ services:
       timeout: 5s
       retries: 5
 
+  oauth-service:
+    build:
+      context: .
+      dockerfile: apps/oauth-service/Dockerfile
+    container_name: oauth-service
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+  ai-analyzer:
+    build: 
+      context: .
+      dockerfile: apps/ai-analyzer/Dockerfile
+    container_name: ai-analyzer
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "5001:5001" 
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  github-service:
+    build: 
+      context: .
+      dockerfile: apps/github-service/Dockerfile
+    container_name: github-service
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "3002:3002" 
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
+  
+  notification-service:
+    build: 
+      context: .
+      dockerfile: apps/notification-service/Dockerfile
+    container_name: notification-service
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "8085:8085" 
+    depends_on:
+      postgres:
+        condition: service_healthy
+  
+  team-service:
+    build: 
+      context: .
+      dockerfile: apps/team-service/Dockerfile
+    container_name: team-service
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "3003:3003" 
+    depends_on:
+      postgres:
+        condition: service_healthy
+        
+  minio:
+    image: minio/minio:latest
+    container_name: cap_minio
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY} 
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+
   # Optional: pgAdmin for visual database management
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -40,3 +125,4 @@ services:
 
 volumes:
   postgres_data:
+  minio_data:
